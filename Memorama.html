@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+   <head>
+    <titulo>Memorama</titulo>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        const game={
+            ctx: null,
+            canvas: null,
+            primeraCarta: true,
+            cartaPrimera: null,
+            segundaCarta: null,
+            inicioX: 45,
+            inicioY: 50,
+            cartaMargen: 30,
+            cartaLon: 30,
+            cartaWidth: 30*4,
+            cartaLargo: 30*4,
+            numCarta: 6,
+            cartas: [],
+            colorCarta: "#EEFE79",
+            colorVolteado: "white",
+            iguales: false,
+            pares: 0,
+            idTimeOut: null,
+
+        }
+        function cartas(x,y,width,largo,info){
+            this.x= x;
+            this.y= y;
+            this.width= width;
+            this.largo= largo;
+            this.info= info;
+            this.dibuja= function(){
+                game.ctx.fillStyle= game.colorVolteado;
+                game.ctx.fillRect(this.x,this.y,this.width,this.largo);
+            }
+        }
+        const tablero=()=>{
+            let i;
+            let x= game.inicioX;
+            let y= game.inicioY;
+            var carta, yy;
+            for(i=0;i<game.numCarta;i++){
+                carta = new cartas(x,y,game.cartaWidth,game.cartaLargo,i);
+                game.cartas.push(carta);
+                carta.dibuja();
+                yy = y + game.cartaWidth + game.cartaMargen
+                yy = new cartas(x,yy,game.cartaWidth,game.cartaLargo,i);
+                game.cartas.push(carta);
+                carta.dibuja();
+                x+=game.cartaWidth+game.cartaMargen;
+            }
+            aciertos();
+        }
+        const revolver=()=>{
+            let i, j, k, temporal;
+            for(i=0; i<100; i++){
+                j= Math.floor(Math.random()*game.cartas.length);
+                k= Math.floor(Math.random()*game.cartas.length);
+                temporal = game.cartas[j].info;
+                game.cartas[j].info = game.cartas[k].info;
+                game.cartas[k].info = temporal;
+            }
+            console.log(game.cartas);
+        }
+        const seleccionar=(e)=>{
+            let pos = ajustar(e.clienteX,e.clienteY);
+            for(var i=0;i<game.cartas.length;i++){
+                var carta = game.cartas[i];
+                if(carta.X>0){
+                    if(
+                    (pos.x>carta.x)&&
+                    (pos.x<carta.x+carta.width)&&
+                    (pos.y>carta.y)&&
+                    (pos.y<carta.y+carta.largo)
+                    ){
+                        if(game.primeraCarta||(i!=Cartaprimera)){
+                            break;
+                        }
+                    }
+                }
+            }
+            if(i<game.cartas.length&&game.pares<game.numCarta){
+                if(game.primeraCarta){
+                    game.cartaPrimera= i;
+                    game.primeraCarta= false;
+                    pintarCarta(carta);
+                }
+                else{
+                    game.cartaSegunda=i;
+                    pintarCarta(carta);
+                    game.primeraCarta= true;
+                    if(game.cartas[game.cartaPrimera].info==game.cartas[game.cartaSegunda].info){
+                        game.iguales= true;
+                        game.pares++;
+                        aciertos();
+                    }
+                    else{
+                        game.iguales=false;
+                    }
+                    game.canvas.removeEventListener("click",seleccionar);
+                    game.idTimeOut=setTimeout(voltearCarta,1000);
+                }
+            }
+            else{
+                console.log("No has hecho nada");
+            }
+        }
+        const aciertos= ()=>{
+            game.ctx.fillStyle="black"
+            console.log(game.pares,game.numCarta)
+            game.ctx.save();
+            if(game.pares==game.numCarta){
+                game.ctx.font="bold 80px comic";
+                game.ctx.clearRect(0,0,game.canvas.width,game.canvas.height);
+                game.ctx.fillText("Muy bien hecho",60,220);
+            }
+            else{
+                game.ctx.font="bold 80px comic";
+                game.ctx.clearRect(0,340,game.canvas.width/2,100);
+                game.ctx.fillText("Aun te falta "+ String(game.pares),30,380);
+
+            }
+            game.ctx.restore();
+        }
+        const voltearCarta=()=>{
+            if(game.pares<game.numCarta){
+                if(game.iguales){
+                    game.ctx.clearRect(
+                        game.cartas[game.cartaPrimera].x,
+                        game.cartas[game.cartaPrimera].y,
+                        game.cartas[game.cartaPrimera].ancho,
+                        game.cartas[game.cartaPrimera].largo
+                    );
+                    game.ctx.clearRect(
+                        game.cartas[game.cartaSegunda].x,
+                        game.cartas[game.cartaSegunda].y,
+                        game.cartas[game.cartaSegunda].ancho,
+                        game.cartas[game.cartaSegunda].largo
+                    );
+                    game.cartas[game.cartaPrimera].x=-1;
+                    game.cartas[game.cartaSegunda].x=-1;
+                }
+                else{
+                    game.cartas[game.cartaPrimera].dibujar();
+                    game.cartas[game.cartaSegunda].dibujar();
+                }
+                game.canvas.addEventListener("click",seleccionar,false);
+            }
+            else{
+                clearTimeOut(game.idTimeOut);
+            }
+        }
+        const pintarCarta=(carta)=>{
+            game.ctx.fillStyle=game.colorCarta;
+            game.ctx.fillRect(carta.x,carta.y,carta.ancho,carta.carta.largo);
+            game.ctx.font="bold 40px comic";
+            game.ctx.fillStyle="black";
+            game.ctx.fillText(
+                String(carta.info),
+                carta.x+carta.ancho/2-10,
+                carta.y+carta.largo/2+10,
+            );
+        }
+        const ajustar=(xx,yy)=>{
+            let posCanvas=game.canvas.getBoundingClientRect(); 
+            let x=xx - posCanvas.left;
+            let y=yy - posCanvas.top;
+            return{x,y};
+        }
+        window.onLoad=function(){
+            game.canvas=document.getElementById("canvas");
+            if(game.canvas&&game.canvas.getContext){
+                game.ctx=gameCanvas.getContext("2d");
+                if(game.ctx){
+                    game.canvas.addEventListener("click",seleccionar,false);
+                    tablero();
+                    revolver();
+                }
+                else{
+                    alert("No cuentas con canva");
+                    
+                }
+            }
+        }
+    </script>
+   </head>    
+   <body>
+    <h1> BIENVENIDO AL JUEGO </h1>
+    <canvas id="canvas" width="960px" height="460px"></canvas>
+   </body>
+</html>
